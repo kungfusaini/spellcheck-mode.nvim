@@ -24,22 +24,48 @@ local function quick_suggestions()
 		return
 	end
 
+	-- Get suggestions
 	local suggestions = vim.fn.spellsuggest(word[1], config.current.options.max_suggestions)
 	if #suggestions == 0 then
 		print("No suggestions found for: " .. word[1])
 		return
 	end
 
-	-- Display suggestions
-	print("Suggestions for '" .. word[1] .. "':")
+	-- Create a numbered list of suggestions
+	local suggestion_lines = { "Suggestions for '" .. word[1] .. "':", "" }
 	for i, suggestion in ipairs(suggestions) do
-		print(i .. ". " .. suggestion)
+		table.insert(suggestion_lines, i .. ". " .. suggestion)
 	end
+	table.insert(suggestion_lines, "")
+	table.insert(suggestion_lines, "Type number to replace (any other key to cancel):")
 
-	-- Get single character input (number)
-	print("Type number to replace (any other key to cancel):")
+	-- Display suggestions in a split window
+	local buf = vim.api.nvim_create_buf(false, true)
+	local width = math.floor(vim.o.columns * 0.8)
+	local height = #suggestion_lines + 2
+	local row = math.floor((vim.o.lines - height) / 2)
+	local col = math.floor((vim.o.columns - width) / 2)
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative = 'editor',
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		style = 'minimal',
+		border = 'rounded'
+	})
+
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, suggestion_lines)
+	vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
+	-- Get user input
+	vim.cmd('redraw')
 	local choice = vim.fn.nr2char(vim.fn.getchar())
 	local num = tonumber(choice)
+
+	-- Close the suggestion window
+	vim.api.nvim_win_close(win, true)
 
 	if num and num >= 1 and num <= #suggestions then
 		-- Replace the word with the chosen suggestion
@@ -102,4 +128,3 @@ end
 setup_autocmds()
 
 return M
-
