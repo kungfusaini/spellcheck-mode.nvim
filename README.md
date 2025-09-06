@@ -16,7 +16,7 @@ Using lazy.nvim:
 
 ```lua
 {
-  'your-username/spellcheck-mode.nvim',
+  'kungfusaini/spellcheck-mode.nvim',
   config = function()
     require('spellcheck-mode').setup({
       -- Your configuration here
