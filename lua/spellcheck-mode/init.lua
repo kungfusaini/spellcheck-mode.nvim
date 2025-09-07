@@ -1,7 +1,7 @@
 local M = {}
 local config = require('spellcheck-mode.config')
 
--- Setup function for configuration only
+-- Setup asdf function for configuration only
 M.setup = function(user_config)
 	config.set(user_config or {})
 end
@@ -13,66 +13,6 @@ local function prev_spell_error_wrap()
 	if vim.fn.getpos('.') == initial_pos then
 		vim.cmd('normal! G')
 		vim.cmd('normal! [s')
-	end
-end
-
--- Custom function for quick number selection without Enter
-local function quick_suggestions()
-	local word = vim.fn.spellbadword()
-	if word[1] == '' then
-		print("No misspelled word under cursor")
-		return
-	end
-
-	-- Get suggestions
-	local suggestions = vim.fn.spellsuggest(word[1], config.current.options.max_suggestions)
-	if #suggestions == 0 then
-		print("No suggestions found for: " .. word[1])
-		return
-	end
-
-	-- Create a numbered list of suggestions
-	local suggestion_lines = { "Suggestions for '" .. word[1] .. "':", "" }
-	for i, suggestion in ipairs(suggestions) do
-		table.insert(suggestion_lines, i .. ". " .. suggestion)
-	end
-	table.insert(suggestion_lines, "")
-	table.insert(suggestion_lines, "Type number to replace (any other key to cancel):")
-
-	-- Display suggestions in a split window
-	local buf = vim.api.nvim_create_buf(false, true)
-	local width = math.floor(vim.o.columns * 0.8)
-	local height = #suggestion_lines + 2
-	local row = math.floor((vim.o.lines - height) / 2)
-	local col = math.floor((vim.o.columns - width) / 2)
-
-	local win = vim.api.nvim_open_win(buf, true, {
-		relative = 'editor',
-		width = width,
-		height = height,
-		row = row,
-		col = col,
-		style = 'minimal',
-		border = 'rounded'
-	})
-
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, suggestion_lines)
-	vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-
-	-- Get user input
-	vim.cmd('redraw')
-	local choice = vim.fn.nr2char(vim.fn.getchar())
-	local num = tonumber(choice)
-
-	-- Close the suggestion window
-	vim.api.nvim_win_close(win, true)
-
-	if num and num >= 1 and num <= #suggestions then
-		-- Replace the word with the chosen suggestion
-		vim.cmd('normal! ciw' .. suggestions[num])
-		print("Replaced with: " .. suggestions[num])
-	else
-		print("Cancelled")
 	end
 end
 
@@ -92,6 +32,11 @@ function M.toggle_spellcheck()
 		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")
 
 		-- Create buffer-local keymaps
+		-- In your setup function
+		vim.keymap.set('n', config.current.keys.suggestions, 'z=', {
+			buffer = 0,
+			desc = 'Show spelling suggestions'
+		})
 		vim.keymap.set('n', config.current.keys.next_error, ']s', {
 			buffer = 0,
 			desc = 'Next spelling error',
