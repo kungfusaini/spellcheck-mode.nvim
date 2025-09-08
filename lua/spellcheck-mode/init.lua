@@ -20,20 +20,26 @@ local function prev_spell_error_wrap()
 end
 
 -- Fast floating window implementation with pre-allocated buffer
--- Fast floating window implementation with pre-allocated buffer
 local function quick_suggestions()
 	local word = vim.fn.spellbadword()
 	if word[1] == '' then return end
+
+	-- Store the current word for potential addition to dictionary
+	local current_word = vim.fn.expand('<cword>')
 
 	-- Get suggestions
 	local suggestions = vim.fn.spellsuggest(word[1], config.current.options.max_suggestions)
 	if #suggestions == 0 then return end
 
 	-- Prepare content
-	local lines = { "Suggestions:" }
+	local lines = { "Suggestions for '" .. current_word .. "':", "" }
 	for i, suggestion in ipairs(suggestions) do
 		table.insert(lines, i .. ". " .. suggestion)
 	end
+
+	-- Add instruction for adding to dictionary
+	table.insert(lines, "")
+	table.insert(lines, "Press " .. config.current.keys.add_to_dict .. " to add to dictionary")
 
 	-- Make buffer modifiable again before setting content
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', true)
@@ -48,7 +54,7 @@ local function quick_suggestions()
 	-- Create or update floating window
 	local win = vim.api.nvim_open_win(suggestion_buf, true, {
 		relative = 'editor',
-		width = 50,
+		width = 60, -- Increased width to accommodate the instruction
 		height = #lines,
 		row = row,
 		col = col,
@@ -66,6 +72,14 @@ local function quick_suggestions()
 	-- Close the suggestion window
 	vim.api.nvim_win_close(win, true)
 
+	-- Handle adding to dictionary
+	if choice == config.current.keys.add_to_dict then
+		vim.cmd('normal! zg') -- Add to dictionary
+		print("Added '" .. current_word .. "' to dictionary")
+		return
+	end
+
+	-- Handle suggestion selection
 	if num and num >= 1 and num <= #suggestions then
 		vim.cmd('normal! ciw' .. suggestions[num])
 	end

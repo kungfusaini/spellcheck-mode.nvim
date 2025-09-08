@@ -5,7 +5,8 @@ local defaults = {
 	keys = {
 		next_error = 'n',
 		prev_error = 'p',
-		suggestions = '<Space>'
+		suggestions = '<Space>',
+		add_to_dict = 'A' -- New key for adding to dictionary
 	},
 	options = {
 		default_lang = 'en_gb',
