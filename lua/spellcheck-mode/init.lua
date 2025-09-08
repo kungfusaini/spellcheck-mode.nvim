@@ -10,7 +10,7 @@ end
 local suggestion_buf = vim.api.nvim_create_buf(false, true)
 
 -- Custom function for previous error that WRAPS AROUND
-function M.prev_error_wrap()
+local function prev_spell_error_wrap()
 	local initial_pos = vim.fn.getpos('.')
 	vim.cmd('normal! [s')
 	if vim.fn.getpos('.') == initial_pos then
@@ -20,7 +20,7 @@ function M.prev_error_wrap()
 end
 
 -- Fast floating window implementation with pre-allocated buffer
-function M.quick_suggestions()
+local function quick_suggestions()
 	local word = vim.fn.spellbadword()
 	if word[1] == '' then return end
 
@@ -37,6 +37,10 @@ function M.quick_suggestions()
 		table.insert(lines, i .. ". " .. suggestion)
 	end
 
+	-- Add instruction for adding to dictionary
+	table.insert(lines, "")
+	table.insert(lines, "Press " .. config.current.keys.add_to_dict .. " to add to dictionary")
+
 	-- Make buffer modifiable again before setting content
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', true)
 	vim.api.nvim_buf_set_lines(suggestion_buf, 0, -1, false, lines)
@@ -50,13 +54,13 @@ function M.quick_suggestions()
 	-- Create or update floating window
 	local win = vim.api.nvim_open_win(suggestion_buf, true, {
 		relative = 'editor',
-		width = 50,
+		width = 60, -- Increased width to accommodate the instruction
 		height = #lines,
 		row = row,
 		col = col,
 		style = 'minimal',
 		focusable = false,
-		noautocmd = true,
+		noautocmd = true, -- Skip autocmds for faster creation
 		border = 'single',
 	})
 
@@ -68,26 +72,51 @@ function M.quick_suggestions()
 	-- Close the suggestion window
 	vim.api.nvim_win_close(win, true)
 
+	-- Handle adding to dictionary
+	if choice == config.current.keys.add_to_dict then
+		vim.cmd('normal! zg') -- Add to dictionary
+		print("Added '" .. current_word .. "' to dictionary")
+		return
+	end
+
+	-- Handle suggestion selection
 	if num and num >= 1 and num <= #suggestions then
 		vim.cmd('normal! ciw' .. suggestions[num])
 	end
 end
 
--- Add current word to dictionary
-function M.add_to_dictionary()
-	local current_word = vim.fn.expand('<cword>')
-	vim.cmd('normal! zg')
-	print("Added '" .. current_word .. "' to dictionary")
-end
-
--- Toggle spellcheck
+-- Toggle spellcheck with language selection and custom keymaps
 function M.toggle_spellcheck()
-	vim.o.spell = not vim.o.spell
 	if vim.o.spell then
+		-- Turn spellcheck OFF and clean up our custom keymaps
+		vim.o.spell = false
+		pcall(vim.keymap.del, 'n', config.current.keys.next_error, { buffer = 0 })
+		pcall(vim.keymap.del, 'n', config.current.keys.prev_error, { buffer = 0 })
+		pcall(vim.keymap.del, 'n', config.current.keys.suggestions, { buffer = 0 })
+		print("Spellcheck: OFF")
+	else
+		-- Turn spellcheck ON
+		vim.o.spell = true
 		vim.o.spelllang = config.current.options.default_lang
 		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")
-	else
-		print("Spellcheck: OFF")
+
+		-- Create buffer-local keymaps
+		vim.keymap.set('n', config.current.keys.next_error, ']s', {
+			buffer = 0,
+			desc = 'Next spelling error',
+			nowait = true
+		})
+
+		vim.keymap.set('n', config.current.keys.prev_error, prev_spell_error_wrap, {
+			buffer = 0,
+			desc = 'Previous spelling error (wrap)',
+			nowait = true
+		})
+
+		vim.keymap.set('n', config.current.keys.suggestions, quick_suggestions, {
+			buffer = 0,
+			desc = 'Show spelling suggestions (quick)'
+		})
 	end
 end
 
