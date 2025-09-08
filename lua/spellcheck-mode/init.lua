@@ -9,7 +9,7 @@ end
 -- Pre-create a buffer for the floating window to avoid recreation overhead
 local suggestion_buf = vim.api.nvim_create_buf(false, true)
 
--- Custom function for previous error that WRAPS AROUND
+-- Custom function for previous error that wraps
 local function prev_spell_error_wrap()
 	local initial_pos = vim.fn.getpos('.')
 	vim.cmd('normal! [s')
@@ -31,17 +31,14 @@ local function quick_suggestions()
 	local suggestions = vim.fn.spellsuggest(word[1], config.current.options.max_suggestions)
 	if #suggestions == 0 then return end
 
-	-- Prepare content
 	local lines = { "Suggestions for '" .. current_word .. "':", "" }
 	for i, suggestion in ipairs(suggestions) do
 		table.insert(lines, i .. ". " .. suggestion)
 	end
 
-	-- Add instruction for adding to dictionary
 	table.insert(lines, "")
 	table.insert(lines, "Press " .. config.current.keys.add_to_dict .. " to add to dictionary")
 
-	-- Make buffer modifiable again before setting content
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', true)
 	vim.api.nvim_buf_set_lines(suggestion_buf, 0, -1, false, lines)
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', false)
@@ -51,51 +48,43 @@ local function quick_suggestions()
 	local row = math.min(cursor_pos[1] - 1, vim.o.lines - #lines - 3)
 	local col = math.min(cursor_pos[2], vim.o.columns - 50)
 
-	-- Create or update floating window
 	local win = vim.api.nvim_open_win(suggestion_buf, true, {
 		relative = 'editor',
-		width = 60, -- Increased width to accommodate the instruction
+		width = 60,
 		height = #lines,
 		row = row,
 		col = col,
 		style = 'minimal',
 		focusable = false,
-		noautocmd = true, -- Skip autocmds for faster creation
+		noautocmd = true,
 		border = 'single',
 	})
 
-	-- Get user input
 	vim.cmd('redraw')
 	local choice = vim.fn.nr2char(vim.fn.getchar())
 	local num = tonumber(choice)
 
-	-- Close the suggestion window
 	vim.api.nvim_win_close(win, true)
 
-	-- Handle adding to dictionary
 	if choice == config.current.keys.add_to_dict then
-		vim.cmd('normal! zg') -- Add to dictionary
+		vim.cmd('normal! zg')
 		print("Added '" .. current_word .. "' to dictionary")
 		return
 	end
 
-	-- Handle suggestion selection
 	if num and num >= 1 and num <= #suggestions then
 		vim.cmd('normal! ciw' .. suggestions[num])
 	end
 end
 
--- Toggle spellcheck with language selection and custom keymaps
 function M.toggle_spellcheck()
 	if vim.o.spell then
-		-- Turn spellcheck OFF and clean up our custom keymaps
 		vim.o.spell = false
 		pcall(vim.keymap.del, 'n', config.current.keys.next_error, { buffer = 0 })
 		pcall(vim.keymap.del, 'n', config.current.keys.prev_error, { buffer = 0 })
 		pcall(vim.keymap.del, 'n', config.current.keys.suggestions, { buffer = 0 })
 		print("Spellcheck: OFF")
 	else
-		-- Turn spellcheck ON
 		vim.o.spell = true
 		vim.o.spelllang = config.current.options.default_lang
 		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")

@@ -6,7 +6,7 @@ local defaults = {
 		next_error = 'n',
 		prev_error = 'p',
 		suggestions = '<Space>',
-		add_to_dict = 'A' -- New key for adding to dictionary
+		add_to_dict = 'A'
 	},
 	options = {
 		default_lang = 'en_gb',
