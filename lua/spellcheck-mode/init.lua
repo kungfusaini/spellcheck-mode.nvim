@@ -1,7 +1,7 @@
 local M = {}
 local config = require('spellcheck-mode.config')
 
--- Setup asdf function for configuration only
+-- Setup function for configuration only
 M.setup = function(user_config)
 	config.set(user_config or {})
 end
@@ -31,12 +31,7 @@ function M.toggle_spellcheck()
 		vim.o.spelllang = config.current.options.default_lang
 		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")
 
-		-- Create buffer-local keymaps
-		-- In your setup function
-		vim.keymap.set('n', config.current.keys.suggestions, 'z=', {
-			buffer = 0,
-			desc = 'Show spelling suggestions'
-		})
+		-- Create buffer-local keymaps using native Vim commands for maximum speed
 		vim.keymap.set('n', config.current.keys.next_error, ']s', {
 			buffer = 0,
 			desc = 'Next spelling error',
@@ -49,9 +44,10 @@ function M.toggle_spellcheck()
 			nowait = true
 		})
 
-		vim.keymap.set('n', config.current.keys.suggestions, quick_suggestions, {
+		-- Direct mapping to z= for instant suggestions
+		vim.keymap.set('n', config.current.keys.suggestions, 'z=', {
 			buffer = 0,
-			desc = 'Show spelling suggestions (quick)'
+			desc = 'Show spelling suggestions'
 		})
 	end
 end
