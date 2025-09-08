@@ -20,6 +20,7 @@ local function prev_spell_error_wrap()
 end
 
 -- Fast floating window implementation with pre-allocated buffer
+-- Fast floating window implementation with pre-allocated buffer
 local function quick_suggestions()
 	local word = vim.fn.spellbadword()
 	if word[1] == '' then return end
@@ -34,7 +35,8 @@ local function quick_suggestions()
 		table.insert(lines, i .. ". " .. suggestion)
 	end
 
-	-- Set buffer content
+	-- Make buffer modifiable again before setting content
+	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', true)
 	vim.api.nvim_buf_set_lines(suggestion_buf, 0, -1, false, lines)
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', false)
 
