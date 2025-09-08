@@ -75,7 +75,6 @@ All keybindings are configurable:
 
 ``` lua
 keys = {
-  toggle = '<leader>sp',     -- Change toggle key
   next_error = ']',          -- Change next error key
   prev_error = '[',          -- Change previous error key  
   suggestions = 's',         -- Change suggestions key
