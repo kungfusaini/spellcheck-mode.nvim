@@ -31,14 +31,17 @@ function M.quick_suggestions()
 	local suggestions = vim.fn.spellsuggest(word[1], config.current.options.max_suggestions)
 	if #suggestions == 0 then return end
 
+	-- Prepare content
 	local lines = { "Suggestions for '" .. current_word .. "':", "" }
 	for i, suggestion in ipairs(suggestions) do
 		table.insert(lines, i .. ". " .. suggestion)
 	end
 
+	-- Add instruction for adding to dictionary
 	table.insert(lines, "")
 	table.insert(lines, "Press '" .. config.current.keys.add_to_dict .. "' to add to dictionary")
 
+	-- Make buffer modifiable again before setting content
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', true)
 	vim.api.nvim_buf_set_lines(suggestion_buf, 0, -1, false, lines)
 	vim.api.nvim_buf_set_option(suggestion_buf, 'modifiable', false)
@@ -87,45 +90,54 @@ function M.add_to_dictionary()
 	print("Added '" .. current_word .. "' to dictionary")
 end
 
+-- Setup keymaps for spell check mode
+function M.setup_keymaps()
+	-- Create buffer-local keymaps
+	vim.keymap.set('n', config.current.keys.next_error, ']s', {
+		buffer = 0,
+		desc = 'Next spelling error',
+		nowait = true
+	})
+
+	vim.keymap.set('n', config.current.keys.prev_error, M.prev_error_wrap, {
+		buffer = 0,
+		desc = 'Previous spelling error (wrap)',
+		nowait = true
+	})
+
+	vim.keymap.set('n', config.current.keys.suggestions, M.quick_suggestions, {
+		buffer = 0,
+		desc = 'Show spelling suggestions (quick)'
+	})
+
+	-- Add to dictionary keymap (works without showing window)
+	vim.keymap.set('n', config.current.keys.add_to_dict, M.add_to_dictionary, {
+		buffer = 0,
+		desc = 'Add word to dictionary'
+	})
+end
+
+-- Remove keymaps for spell check mode
+function M.remove_keymaps()
+	pcall(vim.keymap.del, 'n', config.current.keys.next_error, { buffer = 0 })
+	pcall(vim.keymap.del, 'n', config.current.keys.prev_error, { buffer = 0 })
+	pcall(vim.keymap.del, 'n', config.current.keys.suggestions, { buffer = 0 })
+	pcall(vim.keymap.del, 'n', config.current.keys.add_to_dict, { buffer = 0 })
+end
+
 -- Toggle spellcheck
 function M.toggle_spellcheck()
 	if vim.o.spell then
 		-- Turn spellcheck OFF and clean up our custom keymaps
 		vim.o.spell = false
-		pcall(vim.keymap.del, 'n', config.current.keys.next_error, { buffer = 0 })
-		pcall(vim.keymap.del, 'n', config.current.keys.prev_error, { buffer = 0 })
-		pcall(vim.keymap.del, 'n', config.current.keys.suggestions, { buffer = 0 })
-		pcall(vim.keymap.del, 'n', config.current.keys.add_to_dict, { buffer = 0 })
+		M.remove_keymaps()
 		print("Spellcheck: OFF")
 	else
 		-- Turn spellcheck ON
 		vim.o.spell = true
 		vim.o.spelllang = config.current.options.default_lang
+		M.setup_keymaps()
 		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")
-
-		-- Create buffer-local keymaps
-		vim.keymap.set('n', config.current.keys.next_error, ']s', {
-			buffer = 0,
-			desc = 'Next spelling error',
-			nowait = true
-		})
-
-		vim.keymap.set('n', config.current.keys.prev_error, M.prev_error_wrap, {
-			buffer = 0,
-			desc = 'Previous spelling error (wrap)',
-			nowait = true
-		})
-
-		vim.keymap.set('n', config.current.keys.suggestions, M.quick_suggestions, {
-			buffer = 0,
-			desc = 'Show spelling suggestions (quick)'
-		})
-
-		-- Add to dictionary keymap (works without showing window)
-		vim.keymap.set('n', config.current.keys.add_to_dict, M.add_to_dictionary, {
-			buffer = 0,
-			desc = 'Add word to dictionary'
-		})
 	end
 end
 
@@ -137,6 +149,7 @@ local function setup_autocmds()
 			callback = function()
 				vim.opt_local.spell = true
 				vim.opt_local.spelllang = config.current.options.default_lang
+				M.setup_keymaps() -- This is the key fix: setup keymaps when auto-enabling
 			end
 		})
 	end
