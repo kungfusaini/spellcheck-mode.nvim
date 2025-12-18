@@ -11,7 +11,7 @@ local defaults = {
 	options = {
 		default_lang = 'en_gb',
 		max_suggestions = 10,
-		auto_enable_filetypes = { 'markdown', 'gitcommit', 'text', 'tex' },
+		auto_enable_filetypes = {},
 		spell_options = 'camel'
 	}
 }
@@ -30,7 +30,14 @@ function M.set(user_config)
 
 	-- Merge options
 	if user_config.options then
-		M.current.options = vim.tbl_extend('force', M.current.options, user_config.options)
+		-- Special handling for auto_enable_filetypes to allow complete replacement
+		if user_config.options.auto_enable_filetypes ~= nil then
+			M.current.options.auto_enable_filetypes = user_config.options.auto_enable_filetypes
+		end
+		-- Merge other options normally
+		local other_options = vim.deepcopy(user_config.options)
+		other_options.auto_enable_filetypes = nil
+		M.current.options = vim.tbl_extend('force', M.current.options, other_options)
 	end
 
 	-- Apply spell options

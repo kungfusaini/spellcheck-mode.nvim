@@ -29,9 +29,7 @@ return {
       options = {
         default_lang = 'en_gb',    -- Default spell check language
         max_suggestions = 10,      -- Maximum number of suggestions to show
-        auto_enable_filetypes = {  -- File types to auto-enable spell check
-          'markdown', 'gitcommit', 'text', 'tex'
-        },
+        auto_enable_filetypes = {}, -- File types to auto-enable spell check (empty = disabled)
         spell_options = 'camel'    -- Vim spell options
       }
     })
@@ -59,15 +57,13 @@ When you press <Space> on a misspelled word:
 - Press A to add the word to your personal dictionary
 
 ### Auto-enable
-Spell check automatically enables for these file types:
+Spell check can be automatically enabled for specific file types by configuring the `auto_enable_filetypes` option. By default, auto-enable is disabled (empty array). To enable for specific file types:
 
-- Markdown (*.md)
+```lua
+auto_enable_filetypes = { 'markdown', 'gitcommit', 'text', 'tex' }
+```
 
-- Git commit messages
-
-- Plain text files (*.txt)
-
-- LaTeX files (*.tex)
+This will automatically enable spell check when you open files of these types.
 
 ## Configuration
 ### Key Customization
@@ -87,7 +83,7 @@ keys = {
 options = {
   default_lang = 'en_us',    -- Use US English
   max_suggestions = 5,       -- Show fewer suggestions
-  auto_enable_filetypes = {  -- Add more file types
+  auto_enable_filetypes = {  -- File types to auto-enable spell check
     'markdown', 'gitcommit', 'text', 'tex', 'latex'
   },
   spell_options = 'camel'    -- Support camelCase words
