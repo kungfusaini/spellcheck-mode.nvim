@@ -1,105 +1,125 @@
 # spellcheck-mode.nvim
 
-A powerful spell check mode for Neovim with intuitive navigation, quick suggestions, and dictionary management.
+[![CI](https://github.com/kungfusaini/spellcheck-mode.nvim/actions/workflows/ci.yml/badge.svg)](https://github.com/kungfusaini/spellcheck-mode.nvim/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A keyboard-first spellcheck mode for Neovim. Move between misspellings, choose a correction from a floating menu, or add a word to your dictionary without leaving Normal mode.
+
+![spellcheck-mode.nvim demo](assets/demo.gif)
 
 ## Features
 
-- 🚀 **Fast floating window suggestions** with instant word replacement
-- 🔄 **Wrap-around navigation** for previous spelling errors  
-- 📝 **Add words to dictionary** directly from suggestions
-- ⚡ **Auto-enable** for specific file types
-- 🎯 **Buffer-local keymaps** that don't interfere with normal editing
-- 🔧 **Fully configurable** keybindings and options
+- Numbered spelling suggestions in a floating window
+- Instant replacement without entering Insert mode
+- Forward and wrap-around backward navigation
+- Add the word under the cursor to your dictionary
+- Buffer-local mappings that exist only while the mode is active
+- Optional auto-enable by filetype
+- Configurable keys, language, suggestion count, and `spelloptions`
+
+## Requirements
+
+- Neovim 0.8+
+- A spelling dictionary for your configured language
 
 ## Installation
 
-Using lazy.nvim:
+With [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
-return {
-  'kungfusaini/spellcheck-mode.nvim',
+{
+  "kungfusaini/spellcheck-mode.nvim",
   config = function()
-    require('spellcheck-mode').setup({
-      keys = {
-        next_error = 'n',          -- Go to next spelling error
-        prev_error = 'p',          -- Go to previous spelling error (with wrap-around)
-        suggestions = '<Space>',   -- Show suggestions in floating window
-        add_to_dict = 'A'          -- Add current word to dictionary
-      },
-      options = {
-        default_lang = 'en_gb',    -- Default spell check language
-        max_suggestions = 10,      -- Maximum number of suggestions to show
-        auto_enable_filetypes = {}, -- File types to auto-enable spell check (empty = disabled)
-        spell_options = 'camel'    -- Vim spell options
-      }
-    })
-  end
+    require("spellcheck-mode").setup()
+  end,
+  keys = {
+    {
+      "<leader>sp",
+      function()
+        require("spellcheck-mode").toggle_spellcheck()
+      end,
+      desc = "Toggle spellcheck mode",
+    },
+  },
 }
 ```
 
-## Usage
-### Basic Commands
-- Toggle spell check mode: <leader>sp
+You can also toggle the mode with:
 
-- Navigate to next error: n (when spell check is active)
-
-- Navigate to previous error: p (when spell check is active, with wrap-around)
-- Show suggestions: <Space> (when on a misspelled word)
-- Add to dictionary: A (when on a misspelled word)
-
-### Suggestion Window
-When you press <Space> on a misspelled word:
-
-- A floating window appears with numbered suggestions
-
-- Type a number to instantly replace the word
-
-- Press A to add the word to your personal dictionary
-
-### Auto-enable
-Spell check can be automatically enabled for specific file types by configuring the `auto_enable_filetypes` option. By default, auto-enable is disabled (empty array). To enable for specific file types:
-
-```lua
-auto_enable_filetypes = { 'markdown', 'gitcommit', 'text', 'tex' }
+```vim
+:SpellcheckMode
 ```
 
-This will automatically enable spell check when you open files of these types.
+## Default mappings
+
+The mode installs these buffer-local Normal-mode mappings while it is active and removes them when disabled.
+
+| Key | Action |
+| --- | --- |
+| `n` | Next spelling error |
+| `p` | Previous spelling error, wrapping at the start |
+| `<Space>` | Open suggestions; press a displayed number to replace the word |
+| `A` | Add the word under the cursor to the dictionary |
 
 ## Configuration
-### Key Customization
-All keybindings are configurable:
 
-``` lua
-keys = {
-  next_error = ']',          -- Change next error key
-  prev_error = '[',          -- Change previous error key  
-  suggestions = 's',         -- Change suggestions key
-  add_to_dict = 'D'          -- Change add to dictionary key
+```lua
+require("spellcheck-mode").setup({
+  keys = {
+    next_error = "]s",
+    prev_error = "[s",
+    suggestions = "z=",
+    add_to_dict = "zg",
+  },
+  options = {
+    default_lang = "en_us",
+    max_suggestions = 8,
+    auto_enable_filetypes = {
+      "gitcommit",
+      "markdown",
+      "text",
+    },
+    spell_options = "camel",
+  },
+})
+```
+
+### Defaults
+
+```lua
+{
+  keys = {
+    next_error = "n",
+    prev_error = "p",
+    suggestions = "<Space>",
+    add_to_dict = "A",
+  },
+  options = {
+    default_lang = "en_gb",
+    max_suggestions = 10,
+    auto_enable_filetypes = {},
+    spell_options = "camel",
+  },
 }
 ```
 
-### Language Options
-```lua
-options = {
-  default_lang = 'en_us',    -- Use US English
-  max_suggestions = 5,       -- Show fewer suggestions
-  auto_enable_filetypes = {  -- File types to auto-enable spell check
-    'markdown', 'gitcommit', 'text', 'tex', 'latex'
-  },
-  spell_options = 'camel'    -- Support camelCase words
-}
-``` 
-## Key Features
-- Wrap-around Navigation
-The p key for previous errors wraps around to the end of the file when you reach the beginning, providing seamless navigation.
+`auto_enable_filetypes` is empty by default, so the plugin never enables spellchecking unexpectedly. When configured, matching buffers receive the same mode-local mappings automatically.
 
-- Dictionary Management
-Quickly add words to your personal dictionary to prevent them from being flagged in the future.
+## Development
 
-- Non-intrusive
-All keymaps are buffer-local and only active when spell check is enabled, so they don't interfere with your normal editing workflow.
+Run the test suite in headless Neovim:
 
-## Requirements
-Neovim 0.8+
+```sh
+nvim --headless -u tests/minimal_init.lua \
+  -c "lua dofile('tests/run.lua')"
+```
 
-Lazy.nvim (or your preferred package manager)
+Regenerate the demo with [VHS](https://github.com/charmbracelet/vhs):
+
+```sh
+vhs demo/demo.tape
+```
+
+## License
+
+[MIT](LICENSE)

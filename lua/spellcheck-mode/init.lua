@@ -1,9 +1,15 @@
 local M = {}
-local config = require('spellcheck-mode.config')
+local config = require("spellcheck-mode.config")
+local setup_autocmds
 
--- Setup function for configuration only
-M.setup = function(user_config)
+function M.setup(user_config)
 	config.set(user_config or {})
+	setup_autocmds()
+
+	vim.api.nvim_create_user_command("SpellcheckMode", M.toggle_spellcheck, {
+		desc = "Toggle spellcheck mode for the current window",
+		force = true,
+	})
 end
 
 -- Pre-create a buffer for the floating window to avoid recreation overhead
@@ -77,9 +83,31 @@ function M.quick_suggestions()
 		return
 	end
 
-	-- Handle suggestion selection
+	-- Replace the misspelled word without entering Insert mode or interpreting
+	-- characters in the suggestion as Normal-mode commands.
 	if num and num >= 1 and num <= #suggestions then
-		vim.cmd('normal! ciw' .. suggestions[num])
+		local row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0))
+		local line = vim.api.nvim_get_current_line()
+		local start_col, end_col
+		local search_from = 1
+
+		while true do
+			local word_start, word_end = line:find(word[1], search_from, true)
+			if not word_start then
+				break
+			end
+			if word_start - 1 <= cursor_col and word_end >= cursor_col then
+				start_col, end_col = word_start - 1, word_end
+				break
+			end
+			search_from = word_end + 1
+		end
+
+		if start_col then
+			local suggestion = suggestions[num]
+			vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, end_col, { suggestion })
+			vim.api.nvim_win_set_cursor(0, { row, start_col + #suggestion - 1 })
+		end
 	end
 end
 
@@ -127,35 +155,34 @@ end
 
 -- Toggle spellcheck
 function M.toggle_spellcheck()
-	if vim.o.spell then
-		-- Turn spellcheck OFF and clean up our custom keymaps
-		vim.o.spell = false
+	if vim.wo.spell then
+		vim.opt_local.spell = false
 		M.remove_keymaps()
-		print("Spellcheck: OFF")
+		vim.notify("Spellcheck: OFF")
 	else
-		-- Turn spellcheck ON
-		vim.o.spell = true
-		vim.o.spelllang = config.current.options.default_lang
+		vim.opt_local.spell = true
+		vim.opt_local.spelllang = config.current.options.default_lang
 		M.setup_keymaps()
-		print("Spellcheck: ON (" .. vim.o.spelllang .. ")")
+		vim.notify("Spellcheck: ON (" .. config.current.options.default_lang .. ")")
 	end
 end
 
--- Auto-enable for configured file types
-local function setup_autocmds()
-	if #config.current.options.auto_enable_filetypes > 0 then
-		vim.api.nvim_create_autocmd({ "FileType" }, {
-			pattern = config.current.options.auto_enable_filetypes,
-			callback = function()
-				vim.opt_local.spell = true
-				vim.opt_local.spelllang = config.current.options.default_lang
-				M.setup_keymaps() -- This is the key fix: setup keymaps when auto-enabling
-			end
-		})
+-- Rebuild the FileType autocmd whenever setup() receives new configuration.
+setup_autocmds = function()
+	local group = vim.api.nvim_create_augroup("SpellcheckMode", { clear = true })
+	if #config.current.options.auto_enable_filetypes == 0 then
+		return
 	end
-end
 
--- Initialize auto commands
-setup_autocmds()
+	vim.api.nvim_create_autocmd("FileType", {
+		group = group,
+		pattern = config.current.options.auto_enable_filetypes,
+		callback = function()
+			vim.opt_local.spell = true
+			vim.opt_local.spelllang = config.current.options.default_lang
+			M.setup_keymaps()
+		end,
+	})
+end
 
 return M
