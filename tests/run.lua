@@ -40,8 +40,7 @@ local function run()
 
 	vim.api.nvim_buf_set_lines(0, 0, -1, false, { "sentnce" })
 	vim.api.nvim_win_set_cursor(0, { 1, 0 })
-	vim.api.nvim_feedkeys("1", "n", false)
-	spellcheck.quick_suggestions()
+	assert_equal(spellcheck._replace_current_word("sentnce", "sentence"), true, "replacement finds the current word")
 	assert_equal(vim.api.nvim_get_current_line(), "sentence", "suggestion replaces the misspelled word")
 	assert_equal(vim.api.nvim_get_mode().mode, "n", "suggestion replacement remains in Normal mode")
 

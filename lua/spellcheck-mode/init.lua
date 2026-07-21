@@ -25,6 +25,28 @@ function M.prev_error_wrap()
 	end
 end
 
+-- Replace a word without entering Insert mode or interpreting characters in the
+-- suggestion as Normal-mode commands. Exposed for deterministic testing.
+function M._replace_current_word(word, suggestion)
+	local row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0))
+	local line = vim.api.nvim_get_current_line()
+	local search_from = 1
+
+	while true do
+		local word_start, word_end = line:find(word, search_from, true)
+		if not word_start then
+			return false
+		end
+		if word_start - 1 <= cursor_col and word_end >= cursor_col then
+			local start_col = word_start - 1
+			vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, word_end, { suggestion })
+			vim.api.nvim_win_set_cursor(0, { row, start_col + #suggestion - 1 })
+			return true
+		end
+		search_from = word_end + 1
+	end
+end
+
 -- Fast floating window implementation with pre-allocated buffer
 function M.quick_suggestions()
 	local word = vim.fn.spellbadword()
@@ -83,31 +105,8 @@ function M.quick_suggestions()
 		return
 	end
 
-	-- Replace the misspelled word without entering Insert mode or interpreting
-	-- characters in the suggestion as Normal-mode commands.
 	if num and num >= 1 and num <= #suggestions then
-		local row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0))
-		local line = vim.api.nvim_get_current_line()
-		local start_col, end_col
-		local search_from = 1
-
-		while true do
-			local word_start, word_end = line:find(word[1], search_from, true)
-			if not word_start then
-				break
-			end
-			if word_start - 1 <= cursor_col and word_end >= cursor_col then
-				start_col, end_col = word_start - 1, word_end
-				break
-			end
-			search_from = word_end + 1
-		end
-
-		if start_col then
-			local suggestion = suggestions[num]
-			vim.api.nvim_buf_set_text(0, row - 1, start_col, row - 1, end_col, { suggestion })
-			vim.api.nvim_win_set_cursor(0, { row, start_col + #suggestion - 1 })
-		end
+		M._replace_current_word(word[1], suggestions[num])
 	end
 end
 
